@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'inventory-app-safia.firebaseapp.com',
     storageBucket: 'inventory-app-safia.firebasestorage.app',
   );
+
 }

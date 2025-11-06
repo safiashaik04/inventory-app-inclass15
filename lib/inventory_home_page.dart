@@ -3,9 +3,11 @@ import 'models/item.dart';
 import 'services/firestore_service.dart';
 import 'add_edit_item_screen.dart';
 import 'inventory_dashboard.dart';
+import 'services/auth_service.dart';
 
 class InventoryHomePage extends StatefulWidget {
-  const InventoryHomePage({super.key});
+  final bool isAdmin; // 👈 Added role-based flag
+  const InventoryHomePage({super.key, required this.isAdmin});
 
   @override
   State<InventoryHomePage> createState() => _InventoryHomePageState();
@@ -13,6 +15,7 @@ class InventoryHomePage extends StatefulWidget {
 
 class _InventoryHomePageState extends State<InventoryHomePage> {
   final firestoreService = FirestoreService();
+  final authService = AuthService();
   String searchQuery = '';
   String selectedCategory = 'All';
 
@@ -22,23 +25,51 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
       appBar: AppBar(
         title: const Text('Inventory Management'),
         actions: [
+          // Dashboard Button with icon + text
           TextButton.icon(
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const InventoryDashboard()),
+                PageRouteBuilder(
+                  transitionDuration: const Duration(milliseconds: 400),
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const InventoryDashboard(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    final tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: Curves.easeInOut));
+                    return SlideTransition(position: animation.drive(tween), child: child);
+                  },
+                ),
               );
             },
             icon: const Icon(Icons.dashboard, color: Colors.black),
-            label: const Text(
-              'Dashboard',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-            ),
+            label: const Text('Dashboard',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+          // Logout button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              await authService.signOut();
+            },
           ),
         ],
       ),
       body: Column(
         children: [
+          // Show role info at top
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Role: ${widget.isAdmin ? 'Admin (Full Access)' : 'Viewer (Read-only)'}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+
           // 🔍 Search Field
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -61,10 +92,8 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
               stream: firestoreService.getItemsStream(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox();
-                final categories = snapshot.data!
-                    .map((e) => e.category)
-                    .toSet()
-                    .toList();
+                final categories =
+                    snapshot.data!.map((e) => e.category).toSet().toList();
                 categories.insert(0, 'All');
 
                 return DropdownButton<String>(
@@ -112,17 +141,22 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
                       title: Text(item.name),
                       subtitle: Text(
                           'Qty: ${item.quantity} • \$${item.price} • ${item.category}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => firestoreService.deleteItem(item.id!),
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AddEditItemScreen(item: item),
-                        ),
-                      ),
+                      trailing: widget.isAdmin
+                          ? IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () =>
+                                  firestoreService.deleteItem(item.id!),
+                            )
+                          : null,
+                      onTap: widget.isAdmin
+                          ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AddEditItemScreen(item: item),
+                                ),
+                              )
+                          : null,
                     );
                   },
                 );
@@ -131,13 +165,19 @@ class _InventoryHomePageState extends State<InventoryHomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddEditItemScreen()),
-        ),
-        child: const Icon(Icons.add),
-      ),
+
+      // ➕ Floating Action Button (Admins Only)
+      floatingActionButton: widget.isAdmin
+          ? FloatingActionButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddEditItemScreen(),
+                ),
+              ),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
