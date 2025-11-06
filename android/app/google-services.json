@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "83950753417",
+    "project_id": "inventory-app-safia",
+    "storage_bucket": "inventory-app-safia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83950753417:android:cb7f1f3ee1f18e70675858",
+        "android_client_info": {
+          "package_name": "com.example.inclass15"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpA4-H4983uWegCMFp5lTlKVACLCQY1qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
